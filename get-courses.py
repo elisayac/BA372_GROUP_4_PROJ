@@ -59,7 +59,19 @@ for course_code in cob_couse_codes:
         exit(1)
 
     #print(response.status_code)
-    print(response.text)#todo parse output as JSON and store each course in the same dictionary
+    print(response.text)
+    #todo parse output as JSON and store each course in the same dictionary
+    try:
+        response_json = response.json()
+    except json.JSONDecodeError:
+        print("Could not parse response into JSON")
+        continue
+
+    #Pull course information and store in dictionary
+    for course in response_json.get('results', []):
+        course_id = course.get('id', 'Unknown ID')
+        all_courses[course_id] = course
+
     
 
     
