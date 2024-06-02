@@ -26,20 +26,13 @@ def year_term_code():
             break
         print("Invalid term. Please enter '01', '02', '03', or '04'.")
 
-    #Get the course code
-    while True:
-        course_code_input = input("Enter the course code: ('BA', 'ACTG', 'BANA', 'BIS', 'DSGN', 'FIN', 'HM', 'MRKT', 'MGMT', 'SCLM'): ").strip().upper()
-        if course_code_input in cob_course_codes:
-            break
-        print("Invalid course code. Please enter a valid course code.")
-
-    return year_input, term_input, course_code_input
+    return year_input, term_input
     
-#Get user input for term, year, and course code
-year, term, course_code = year_term_code()
+#Get user input for term and year
+year, term = year_term_code()
 
 #Form the srcdb string according to the values provided by user
-srcdb = f"{year}{term}{course_code}"
+srcdb = f"{year}{term}"
 
 #Initialize a dictionary to store all courses
 all_courses = {}
