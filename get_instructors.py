@@ -17,5 +17,11 @@ except:
   print("Error... API call failed")
   exit(1)
 
+#added html stripping lines from reitsma in class 
+json_data= json.loads(response.text)
+instr_name = re.sub('<[^>]*>', ' ', json_data["instructordetail_html"])
+
+
 #print(response.status_code)
 print(response.text)
+print(instr_name)
