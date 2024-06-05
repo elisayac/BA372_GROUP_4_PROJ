@@ -3,11 +3,17 @@ from ldap3 import Server, Connection, ALL, SUBTREE
 import json
 import requests
 
-
-if (len(sys.argv) != 2):
+def main():
+  if (len(sys.argv) != 2):
   print("Program incorrectly started...")
   print("deliverable.py <credentials_file> ")
   exit(1)
+#loop for script 2 based on script 1
+for course, crn in courses.items():
+    instructor, error = get_instructors(year, term, crn)
+    if error:
+        print(f"Error fetching instructor for {course}: {error}")
+        continue
   
 #script 1
 def get_courses():
