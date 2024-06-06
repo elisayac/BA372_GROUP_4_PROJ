@@ -1,13 +1,10 @@
 import sys
-from ldap3 import Server, Connection, ALL, SUBTREE
+from ldap3 import Server, Connection, ALL, SUBTREE 
 import json
-import requests
+import requests 
 
 
-if (len(sys.argv) != 2):
-  print("Program incorrectly started...")
-  print("deliverable.py <credentials_file> ")
-  exit(1)
+
   
 #script 1
 def get_courses():
@@ -17,19 +14,9 @@ def get_courses():
 def get_instructors(year, term, crn):
     return
 
-
-#script 3
-def get_email(first_name, last_name, credentials_file):
-
-    #if (len(sys.argv) != 4):
-    # print("Program incorrectly started...")
-    # print("ldap_query_for_onid.py <credentials_file> <first_name> <last_name>")
-    # exit(1)
-
-    # ldap_credentials_file = sys.argv[1]
-    # first_name = sys.argv[2]
-    # last_name = sys.argv[3]
-
+#breakout of ldap connection for getting emails
+def connect_ldap(credentials_file):
+    
     #Read LDAP credentials from credentials file
     try:
         fp = open(credentials_file, "r")
@@ -42,10 +29,9 @@ def get_email(first_name, last_name, credentials_file):
 
     ldap_login_list = line_1.split("=")
     ldap_login = ldap_login_list[1].rstrip()
-
+    
     ldap_password_list = line_2.split("=")
     ldap_password = ldap_password_list[1].lstrip().rstrip()
-
     #Define the server
     server = Server('onid-k-dc01.onid.oregonstate.edu', get_info = ALL)
 
@@ -56,6 +42,13 @@ def get_email(first_name, last_name, credentials_file):
     if not connect.bind():
         print('error in bind', connect.result)
         exit(1)
+    return connect
+
+
+#script 3
+#should pass in desired firstname, lastname, and open ldap connection
+def get_email(first_name, last_name, connect):
+
 
     #Set search parameters
     ldap_filter = "(&(sn=" + last_name + ")(givenName=" + first_name + "))"
@@ -81,5 +74,15 @@ def get_email(first_name, last_name, credentials_file):
         email = "Nothing"
     return email
 
+if (len(sys.argv) != 2):
+  print("Program incorrectly started...")
+  print("deliverable.py <credentials_file> ")
+  exit(1)
 
-#code goes here
+connection=connect_ldap(sys.argv[1])
+#debug print use to test 
+# print ("connected") 
+# email_test= get_email("Gary", "Micheau", connection)
+# email_test= get_email("Reindert", "Reitsma", connection)
+# email_test= get_email("Joe", "Beaver", connection)
+# print(email_test)
