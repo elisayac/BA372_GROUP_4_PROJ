@@ -19,7 +19,8 @@
 #python ldap_query_for_onid.py z:\credentials.txt Logan Steele
 
 import sys
-from ldap3 import Server, Connection, ALL, SUBTREE
+from 
+import Server, Connection, ALL, SUBTREE # type: ignore
 
 if (len(sys.argv) != 4):
   print("Program incorrectly started...")
