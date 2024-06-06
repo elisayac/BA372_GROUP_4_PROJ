@@ -1,25 +1,21 @@
-#!!!Note: this service only works for the current academic term; change the program accordingly !!!
 import requests
 import json
 
-#OSU course catalog URL
+# OSU course catalog URL
 url = "https://classes.oregonstate.edu/api/?page=fose&route=search"
 
-#https://catalog.oregonstate.edu/college-departments/business/#coursestext SOURCE for couse codes
-cob_couse_codes= {'BA', 'ACTG', 'BANA','BIS', 'DSGN', 'FIN', 'HM', 'MRKT', 'MGMT','SCLM'}
+# Source for course codes
+cob_course_codes = {'BA', 'ACTG', 'BANA', 'BIS', 'DSGN', 'FIN', 'HM', 'MRKT', 'MGMT', 'SCLM'}
 
-##Nicks code start
 def year_term_code():
     valid_terms = {'01', '02', '03', '04'}
-    #Loop until valid inputs are provided
+    # Loop until valid inputs are provided
     while True:
         year_input = input("Enter the academic year (e.g., 2024 for the 2023-2024 academic year): ")
-        #make sure we only accept years, numeric only, must be 4 digits long
         if year_input.isdigit() and len(year_input) == 4:
             break
         print("Invalid year. Please enter a 4-digit year.")
 
-    #Get the term
     while True:
         term_input = input("Enter the term (01 for Fall, 02 for Winter, 03 for Spring, 04 for Summer): ").strip()
         if term_input in valid_terms:
@@ -27,50 +23,69 @@ def year_term_code():
         print("Invalid term. Please enter '01', '02', '03', or '04'.")
 
     return year_input, term_input
-    
-#Get user input for term and year
+
+# store user input for term and year here 
 year, term = year_term_code()
 
-#Form the srcdb string according to the values provided by user
+# Form the srcdb string according to the values provided by user
 srcdb = f"{year}{term}"
 
-#Initialize a dictionary to store all courses
-all_courses = {}
-##Nicks code end    
+# Initialize a list to store selected fields of all courses
+selected_courses = []
 
-#Set up the query
-for course_code in cob_couse_codes:
-    
+# Set up the query
+for course_code in cob_course_codes:
     query_dict = {
-        #replaced static 202403 string with dynamic user text entry (srcdb)
-    "other" : {"srcdb": srcdb},  #Now uses the user inputted values, not just 202403
-    "criteria" : [ {"field" : "subject", "value" : course_code } ] 
+        "other": {"srcdb": srcdb},
+        "criteria": [{"field": "subject", "value": course_code}]
     }
 
-    #Convert query_dict into string
+    # Convert query_dict into string
     query_str = json.dumps(query_dict)
 
-    #print("query_str: ", query_str)
+    #show each course code query in terminal, print an error if the connection to API is failed
     try:
-    #Make POST request; pass query_str as data
         response = requests.post(url, data=query_str, timeout=10)
-    except:
-        print("Error... API call failed")
-        exit(1)
+        response.raise_for_status()  #Check if the request was successful
+        print(f"\nQueried {course_code} for term {srcdb}, Status code: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Error... API call failed: {e}")
+        continue
 
-    #print(response.status_code)
-    print(response.text)
-    #todo parse output as JSON and store each course in the same dictionary
+    #format the query results into json, if the results cannot be formatted into json, raise an error
     try:
         response_json = response.json()
     except json.JSONDecodeError:
         print("Could not parse response into JSON")
         continue
 
-    #Pull course information and store in dictionary
+    #if the key 'results' exists in response_json, show that results were found and how many courses there are for each course_code given the custom srcdb
+    if 'results' in response_json:
+        print(f"Results found for {course_code} in term {srcdb}: {len(response_json['results'])} courses")
+    else:
+        print(f"No results found for {course_code} in term {srcdb}")
+
+    #pull the data or 'results' for each course that is found in API for the term and year
     for course in response_json.get('results', []):
-        course_id = course.get('id', 'Unknown ID')
-        all_courses[course_id] = course
+        # Check if the course is cancelled
+        if not course.get('iscancelled'):
+            # Select only the desired fields and add them to the selected_courses list
+            selected_course_info = {
+                "Course ID": f"{course.get('code')}_{course.get('crn')}",
+                "key": course.get('key'),
+                "code": course.get('code'),
+                "title": course.get('title'),
+                "crn": course.get('crn'),
+                "no": course.get('no'),
+                "instr": course.get('instr'),
+                "total": course.get('total')
+            }
+            selected_courses.append(selected_course_info)
+
+#Print the selected course information in comprehensive format 
+for course_info in selected_courses:
+    print(json.dumps(course_info, indent=4))
+
 
     
 
