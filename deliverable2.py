@@ -3,6 +3,7 @@ from ldap3 import Server, Connection, ALL, SUBTREE
 import json
 import requests 
 import re
+import csv
 
 def year_term_code():
     valid_terms = {'01', '02', '03', '04'}
@@ -88,8 +89,8 @@ def get_courses():
                 selected_courses.append(selected_course_info)
 
     #Print the selected course information in comprehensive format 
-    for course_info in selected_courses:
-        print(json.dumps(course_info, indent=4))
+    #for course_info in selected_courses:
+       # print(json.dumps(course_info, indent=4))
     return srcdb, selected_courses
 
 #script 2
@@ -194,6 +195,51 @@ def get_email(first_name, last_name, connect):
         email = "Nothing"
     return email
 
+def courses_to_instructors(courses): # takes in couses dict, groups courses by instructors
+    instructors = [] # array
+    year = str(srcdb)[:4]
+    term_code = str(srcdb)[-2:]
+    term_codes = {
+        '01' : 'Fall ',
+        '02' : 'Winter ',
+        '03' : 'Spring ',
+        '04' : 'Summer '
+    }
+    term_name = term_codes[term_code]
+    term_str_readable = term_name + year
+    for course in courses:
+        instructor = {
+        'email' : course.get('email'),
+        'last_name' : course.get('last_name'),
+        'first_name': course.get('first_name'),
+        'courses' : course.get("code"),
+        'term' : term_str_readable
+        }
+            
+        if not any(d.get('email') == instructor['email'] for d in instructors): # is there an entry in the instructors list with the same email already? 
+            instructors.append(instructor) # if not, add current instructor to list
+        elif instructor['email'] == "Nothing": 
+              if not any(d['first_name'] == instructor['first_name'] and d['last_name'] == instructor['last_name']   for d in instructors): # is there an entry in the instructors list with the same email already? 
+                instructors.append(instructor) # if not, add current instructor to list
+
+        else: # if instructor already exisits, match email, append course code 
+            for existing_instructor in instructors:
+                if existing_instructor['last_name'] == instructor['last_name'] and existing_instructor['first_name'] == instructor['first_name'] and not(instructor['courses'] in existing_instructor['courses']) :
+                    existing_instructor['courses'] = existing_instructor['courses'] + ", " + instructor['courses']
+    return instructors
+
+        
+def print_to_csv(instructors,srcdb): #takes in list of instructor dictionary, outputs csv 
+# adds rows for each unique email, colums for each course
+
+    fields = ['last_name', 'first_name', 'term', 'courses', 'email']
+    filename = srcdb + "qualtrics_syllabus_collection_input.csv"
+    with open (filename, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(instructors)
+
+
 if (len(sys.argv) != 2):
   print("Program incorrectly started...")
   print("deliverable.py <credentials_file> ")
@@ -206,8 +252,12 @@ connection=connect_ldap(sys.argv[1])
 
 for course in courses:
     course['email'] = get_email(course['first_name'], course['last_name'], connection)
-    print(course['email'])
-        
+    #print(course['email'])
+   # print(json.dumps(courses, indent=4))
+instructors = courses_to_instructors(courses)
+print_to_csv(instructors, srcdb)
+#for instructor in instructors:
+    #print(json.dumps(instructor, indent=4))  
 #debug print use to test 
 # print ("connected") 
 # email_test= get_email("Gary", "Micheau", connection)
