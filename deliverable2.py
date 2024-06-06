@@ -94,35 +94,43 @@ def get_courses():
 
 #script 2
 def get_instructors(srcdb, selected_courses):
-  for course_info in selected_courses:
-    query_dict = {"srcdb": srcdb, "key" : ("crn:" + course_info["crn"])} #add course CRN (can be extracted with the previous program)
+    for course_info in selected_courses:
+        query_dict = {"srcdb": srcdb, "key" : ("crn:" + course_info["crn"])} #add course CRN (can be extracted with the previous program)
 
-    #Convert query_dict into string
-    query_str = json.dumps(query_dict)
-    #print("query_str: ", query_str)
+        #Convert query_dict into string
+        query_str = json.dumps(query_dict)
+        #print("query_str: ", query_str)
 
-    url = "https://classes.oregonstate.edu/api/?page=fose&route=details"
-    try:
-      #Make POST request; pass query_str as data
-      response = requests.post(url, data=query_str, timeout=10)
-    except:
-      print("Error... API call failed")
-      exit(1)
+        url = "https://classes.oregonstate.edu/api/?page=fose&route=details"
+        try:
+            #Make POST request; pass query_str as data
+            response = requests.post(url, data=query_str, timeout=10)
+        except:
+            print("Error... API call failed")
+            exit(1)
 
-    #added html stripping lines from reitsma in class 
-    json_data= json.loads(response.text)
-    instr_name = re.sub('<[^>]*>', ' ', json_data["instructordetail_html"])
-    # split into first/last
-    name_parts = instr_name.split()
-    course_info['first_name']= name_parts[0]
-    course_info['last_name']= name_parts[1]
-   
+        #added html stripping lines from reitsma in class 
+        json_data= json.loads(response.text)
+        instr_name = re.sub('<[^>]*>', ' ', json_data["instructordetail_html"])
+        # split into first/last
+        name_parts = instr_name.split()
+        #just for debug
+        if len(name_parts) <1: # handles empty instructor field
+            #print(json.dumps(course_info, indent=4))
+            #print( instr_name)
+            #print (json.loads(response.text))
+            course_info['first_name']= "NO INSTRUCTOR"
+            course_info['last_name']= "NO INSTRUCTOR"
+        else:
+            course_info['first_name']= name_parts[0]
+            course_info['last_name']= name_parts[1]
+        #print(course_info['first_name'])
 
 
-    #add first and last to dictionary
-    #print(response.status_code)
-    #print(response.text)
-    #print(instr_name)
+        #add first and last to dictionary
+        #print(response.status_code)
+        #print(response.text)
+        #print(instr_name)
     return selected_courses
 
 #breakout of ldap connection for getting emails
@@ -147,6 +155,7 @@ def connect_ldap(credentials_file):
     server = Server('onid-k-dc01.onid.oregonstate.edu', get_info = ALL)
 
     #Define the connection
+    print("Connected to ldap")
     connect = Connection(server, user = 'onid\\' + ldap_login, password = ldap_password)
 
     #Bind
@@ -180,7 +189,7 @@ def get_email(first_name, last_name, connect):
     #Extract the email address from the response
     if len(connect.response) == 1:
         email = (connect.response[0]['attributes']['userPrincipalName'])
-        print(email)
+        #print(email)
     else:
         email = "Nothing"
     return email
@@ -189,14 +198,15 @@ if (len(sys.argv) != 2):
   print("Program incorrectly started...")
   print("deliverable.py <credentials_file> ")
   exit(1)
+srcdb, courses = get_courses()
+
+courses = get_instructors(srcdb, courses)
 
 connection=connect_ldap(sys.argv[1])
-courses=get_courses()
-for course, crn in courses.items():
-    instructor, error = get_instructors(year, term, crn)
-    if error:
-        print(f"Error fetching instructor for {course}: {error}")
-        continue
+
+for course in courses:
+    course['email'] = get_email(course['first_name'], course['last_name'], connection)
+    print(course['email'])
         
 #debug print use to test 
 # print ("connected") 
