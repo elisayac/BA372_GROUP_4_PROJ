@@ -3,8 +3,6 @@ from ldap3 import Server, Connection, ALL, SUBTREE
 import json
 import requests 
 
-
-
   
 #script 1
 def get_courses():
@@ -80,6 +78,13 @@ if (len(sys.argv) != 2):
   exit(1)
 
 connection=connect_ldap(sys.argv[1])
+courses=get_courses()
+for course, crn in courses.items():
+    instructor, error = get_instructors(year, term, crn)
+    if error:
+        print(f"Error fetching instructor for {course}: {error}")
+        continue
+        
 #debug print use to test 
 # print ("connected") 
 # email_test= get_email("Gary", "Micheau", connection)
